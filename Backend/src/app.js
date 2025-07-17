@@ -2,57 +2,27 @@ const express = require('express');
 require("./config/database");
 const connectDB = require('./config/database');
 const app = express();
+const cookieParser = require("cookie-parser");
 const bcrypt = require("bcrypt");
- 
+const jwt = require("jsonwebtoken");
+const {userAuth} = require("./middlewares/auth")
 const User = require("./models/user");
 const {validateSignupData} = require("./utils/validation");
 app.use(express.json());
+app.use(cookieParser());
 
-app.post("/signup", async (req, res) => {
-    validateSignupData(req); 
+const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
+const requestRouter = require("./routes/requests");
+const userRouter = require("./routes/user");
 
-    const {firstName, lastName, emailId, password} = req.body;
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestRouter);
+app.use("/", userRouter);
 
-    const passwordHash = bcrypt.hash(password, 10);
-    console.log(passwordHash);
 
-    const user = new User({
-        firstName,
-        lastName,
-        emailId,
-        password: passwordHash
-    });
-    try{
-        await user.save();
-        res.send("User added Successfully");
-    } catch (err) {
-        res.status(400).send("Error saving the user: ", err.message);
-    }
-})
 
-app.post("/login", async (req, res) => {
-    try{
-        const {emailId, password} = req.body;
-        if(!validator.isEmail(emailId)){
-            throw new Error("Invalid email id!");
-        } 
-
-        const user = await User.find({emailId: emailId});
-        if(!user){
-            throw new Error("Invalid Credentials!");
-        }
-
-        const isPasswordValid = bcrypt.compare(password, user.password );
-        if(isPasswordValid){
-            res.send("User Login Successful");
-        } else {
-            throw new Error("Invalid Credentials!");
-        }
-
-    } catch(err){
-
-    }
-})
 
 app.get("/user", async (req, res) => {
     const userEmail = req.body.emailId;
@@ -116,6 +86,8 @@ app.patch("/user/:userId", async (req, res) => {
         res.status(400).send(err);
     }
 })
+
+
 
 connectDB()
 .then(() => {
